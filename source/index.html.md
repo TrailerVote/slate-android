@@ -1,239 +1,162 @@
 ---
-title: API Reference
+title: TrailerVote Documentation
 
 language_tabs: # must be one of https://git.io/vQNgJ
-  - shell
-  - ruby
-  - python
-  - javascript
+  - java
 
 toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
-  - <a href='https://github.com/lord/slate'>Documentation Powered by Slate</a>
-
-includes:
-  - errors
+  - © TrailerVote. CONFIDENTIAL.
 
 search: true
 ---
 
 # Introduction
+The TrailerVote is a innovative software service that enables movie-ticketing apps to increases user engagement and customer understanding by encouraging moviegoers to rate trailers as they are played on the big screen of the cinema. Users are later sent notifications as a reminder that tickets for the movie they wanted see are now on sale.
 
-Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.
+Features include:
 
-We have language bindings in Shell, Ruby, Python, and JavaScript! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
+- Theatre-Optimized Audio Recognition: Optimized for complex cinema environments including 7+ speakers, reverb, echo, deep bass
+- Branding & Styling: Custom branding for listening experience with your choice of background colors and logo.
+- Offline audio recognition: Minimizes the need for network connectivity at the cinema.
+- Custom Recognition: Identify trailer content, loyalty program promotions, or advertisements and serve the corresponding interactions.
 
-This example API documentation page was created with [Slate](https://github.com/lord/slate). Feel free to edit it and use it as a base for your own API's documentation.
+# Requirements
 
-# Authentication
+In order to use TrailerVote technology, you must have the following:
 
-> To authorize, use this code:
+- A movie-related mobile app
+- Android 4.4 (API 19) or higher
 
-```ruby
-require 'kittn'
+# Android
+## Installation
+- Contact TrailerVote for the the latest iOS SDK.
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
+- Copy com directory into your project libraries directory. Example, YourAppDir/app/libs/.
+  ![alt text](img_sdk_location.png "TrailerVote SDK in Android Project")
+
+- In you project gradle file add libraries directory to repositories list.
+
+``` 
+# project gradle file
+
+allprojects {
+    repositories {
+        maven {
+            url "libs"
+        }
+    }
+}
 ```
 
-```python
-import kittn
+- In your app module gradle file add TrailerVote SDK dependency.
 
-api = kittn.authorize('meowmeowmeow')
+```
+# app module gradle
+
+dependencies {
+    implementation "com.trailervote:trailervotesdk:1.0.0@aar"
+}
 ```
 
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here"
-  -H "Authorization: meowmeowmeow"
+## Configuring and initializing the TrailerVote SDK
+The initialization process of the SDK begins immediately at the first call of `TrailerVoteSdk.init(context, authority, backendEndpoint, username, password);`. All internal dependencies are initialized as well as public singleton instances.
+
+To start the pre-loading process of the trailer recognition data, call the `TrailerVoteSdk.instance().loadData();` method.
+
+Once the data is downloaded, the trailer recognition feature will be available in offline, but please keep the data pre-load call triggered on your app launch so that the SDK could update the recognition data.
+
+## Enabling the TrailerVote In-Theatre feature
+The main feature of the SDK is the audio recognition of movie trailers. We use the `TrailerVoteRecognitionActivity` for presenting a full-screen user interface and for handling the audio recognition process.
+  ![alt text](img_recognition_screen.jpg "TrailerVote Listening Screen")
+
+```java
+boolean success = TrailerVoteSdk.instance().openRecognitionScreen(context);
+if (!success) {
+  // error
+}
 ```
 
-```javascript
-const kittn = require('kittn');
+Navigate to recognition screen by calling the -TrailerVoteSdk.instance().openRecognitionScreen(Context) method of the main SDK class.
 
-let api = kittn.authorize('meowmeowmeow');
+Note that after a trailer is recognized the SDK will render the voting buttons automatically and prompt the user to vote.
+  ![alt text](img_recognition_screen_voting.jpg "TrailerVote Listening Screen")
+
+After a user votes, the feedback is recorded internally in the SDK and transmitted to TrailerVote. This means that this information is visible in the voted trailers feed and any API that exposes the vote.
+
+_Note: Special advertisement clips are handled differently - the fullscreen WebView is presented with the corresponding url being loaded._
+
+The SDK provides the ways to set the logo image displayed at the trailer recognition screen. To set the logo image, add the drawable with the name `img_tv_recognition_screen_partner_logo`. You can override the default voting card background as well by adding the drawable with the name `img_tv_recognition_screen_partner_background`.
+
+## Enabling the TrailerVote Video Player
+Because moviegoers watch trailers in your movie app, we recommend replacing your video player with the TrailerVote Video Player. The **TrailerVote Video Player** will provide a prompt during the video playback.
+  ![alt text](img_player_screen.png "TrailerVote Video Player")
+
+To launch the video player, call the
+
+```java
+TrailerVoteSdk.instance().openVideoPlayerForTrailer(context, trailerUrl, runnableOnError);
 ```
 
-> Make sure to replace `meowmeowmeow` with your API key.
+The video player will automatically manage the playback queue and present the voting UI in order for user to vote on shown movies.
 
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
-
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
-
-`Authorization: meowmeowmeow`
-
-<aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
-</aside>
-
-# Kittens
-
-## Get All Kittens
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
+## Enabling the Analytics and the Remote Notifications capabilities
+```java
+TrailerVoteSdk.instance().setRemoteAnalyticsToken(YOUR_ANALYTICS_TOKEN);
 ```
 
-```python
-import kittn
+Both the analytics and the remote notifications capanilities require the client token to be provided to the SDK. To begin the setup, provide your token by calling the `setRemoteAnalyticsToken(YOUR_ANALYTICS_TOKEN)` method. The key events will be sent automatically by the SDK.
 
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
+```java
+FirebaseInstanceId.getInstance().getInstanceId().addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+    @Override
+    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+        if (task.isSuccessful()) {
+            TrailerVoteSdk.instance().enablePushNotifications(task.getResult().getToken());
+            TrailerVoteSdk.instance().setClassForNotificationIntent(MainActivity.class);
+        }
+    }
+}
 ```
 
-```shell
-curl "http://example.com/api/kittens"
-  -H "Authorization: meowmeowmeow"
-```
+For enabling the remote notifications capability, start by calling `enablePushNotifications(deviceToken)` and `setClassForNotificationIntent(class)` methods.
 
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let kittens = api.kittens.get();
-```
-
-> The above command returns JSON structured like this:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Max",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
+```java
+if (intent.getAction() == Intent.ACTION_MAIN) {
+  Bundle extras = intent.getExtras();
+  if (extras.containsKey("trailervote_notification") {
+    TrailerVoteSdk.instance().onNotificationReceived(extras, new NotificationActionListener() {
+      @Override
+      void onNotificationAction(@NonNull NotificationAction action, @Nullable String movieId) {
+        switch (action) {
+          case NotificationAction.OPEN_RECOGNITION:
+            
+            break;
+          case NotificationAction.OPEN_MOVIE_DETAILS:
+            
+            break;
+          case NotificationAction.OPEN_MOVIE_SHOWTIMES:
+            
+            break;
+          case default:
+            
+            break;
+        }
+      }
+    });
   }
-]
-```
-
-This endpoint retrieves all kittens.
-
-### HTTP Request
-
-`GET http://example.com/api/kittens`
-
-### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
-
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
-
-## Get a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2"
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.get(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "name": "Max",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
 }
 ```
 
-This endpoint retrieves a specific kitten.
+When the notification is received, call the `onNotificationReceived(intentExtras, listener)` method. In order to communicate back to your app after processing the notification’s extras, the SDK provides `NotificationActionListener` interface. Implement this interface to react to the notification processing result.
 
-<aside class="warning">Inside HTML code blocks like this one, you can't use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
+In some time later, when you wish to stop the remote notifications capability, call the `disablePushNotifications` method to remove current device token from the notifications recipients list.
 
-### HTTP Request
+To track analytics events, the SDK provides several methods:
 
-`GET http://example.com/kittens/<ID>`
+- `TrailerVoteSdk.instance().logTicketPurchasedEvent(movieId, showtimeTimestamp, quantity, totalPrice, convenienceFees, currencyCode);`
 
-### URL Parameters
+- `TrailerVoteSdk.instance().logShowtimesPageShownEvent(movieId);`
 
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to retrieve
+Call these methods in corresponding places in your app to submit the corresponding events.
 
-## Delete a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2"
-  -X DELETE
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.delete(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "deleted" : ":("
-}
-```
-
-This endpoint deletes a specific kitten.
-
-### HTTP Request
-
-`DELETE http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to delete
-
+When recognition screen is opened, the event will be submitted automatically.
